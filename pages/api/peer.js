@@ -1,4 +1,4 @@
-const { PeerServer } = require('peer');
+import { PeerServer } from 'peer';
 
 export default function handler(req, res) {
     try {
