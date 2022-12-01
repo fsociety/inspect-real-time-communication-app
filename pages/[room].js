@@ -39,7 +39,7 @@ export default function Room() {
             
             const myPeer = new Peer(undefined,{
                 host: '/',
-                port: 8080,
+                port: 9000,
             });
 
             myPeer.on('open', id => {
