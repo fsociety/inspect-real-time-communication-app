@@ -25,6 +25,7 @@ export default function Home({uuidv4}) {
             <a
               href={`/${uuidv4}`}
               target="_blank"
+              rel="noreferrer"
               className="inline-flex items-center justify-center px-8 py-4 text-2xl font-semibold leading-7 text-white rounded-lg shadow-sm bg-gradient-to-r from-cyan-500 to-blue-500 ring-1"
             >
               Get started
