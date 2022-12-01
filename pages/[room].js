@@ -9,6 +9,8 @@ export default function Room() {
     const { room } = query
     const peers = {};
 
+    //fetch('/api/peer').then(() => console.log('connected to peerServer'))
+
     useEffect(() => socketInitializer(), [isReady])
 
     const socketInitializer = () => {
@@ -26,9 +28,19 @@ export default function Room() {
             if(peers?.[userId]) peers[userId].close();
         })
 
-        import('peerjs').then(({ default: Peer }) => {
+        import('peerjs').then(data => {
+            fetch('/api/peer').then(() => {
+                console.log('peerServer Connected')
+            })
+            .catch(err => console.log(err))
+            return data
+        })
+        .then(({ default: Peer }) => {
             
-            const myPeer = new Peer();
+            const myPeer = new Peer(undefined,{
+                host: '/',
+                port: 8080,
+            });
 
             myPeer.on('open', id => {
                 socket.emit('joined-room', room, id)
