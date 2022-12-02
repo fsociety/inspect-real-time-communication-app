@@ -28,19 +28,9 @@ export default function Room() {
             if(peers?.[userId]) peers[userId].close();
         })
 
-        import('peerjs').then(data => {
-            fetch('/api/peer').then(() => {
-                console.log('peerServer Connected')
-            })
-            .catch(err => console.log(err))
-            return data
-        })
-        .then(({ default: Peer }) => {
+        import('peerjs').then(({ default: Peer }) => {
             
-            const myPeer = new Peer(undefined,{
-                host: '/',
-                port: 9000,
-            });
+            const myPeer = new Peer();
 
             myPeer.on('open', id => {
                 socket.emit('joined-room', room, id)
@@ -82,14 +72,14 @@ export default function Room() {
                 ref={myVideo}
                 onLoadedMetadata={() => myVideo.current.play()}
                 muted 
-                className='object-cover w-full h-full'></video>
+                className='object-contain w-full h-full'></video>
             </div>
             
             <div className='w-full h-full'>
             <video
             ref={video}
             onLoadedMetadata={() => video.current.play()}
-            className='object-cover w-full h-full'></video>
+            className='object-contain w-full h-full'></video>
             </div>
         </div>
     )
