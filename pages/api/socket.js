@@ -5,7 +5,7 @@ export default function handler(req, res) {
     console.log("New Socket.io server...");
     const httpServer = res.socket.server;
     const io = new Server(httpServer, {
-      path: process.env.NEXT_PUBLIC_SOCKET_URL,
+      path: `${process.env.NEXT_PUBLIC_SOCKET_URL}`,
     });
     res.socket.server.io = io;
 

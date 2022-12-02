@@ -17,7 +17,7 @@ export default function Room() {
         if(!isReady) return;
 
         const socket = SocketIOClient.connect('/', {
-            path: process.env.NEXT_PUBLIC_SOCKET_URL,
+            path: `${process.env.NEXT_PUBLIC_SOCKET_URL}`,
         });
 
         socket.on("connect", () => {
@@ -50,6 +50,7 @@ export default function Room() {
                 })
     
                 socket.on('user-connected', (userId) => {
+                    console.log('user connected');
                     const call = myPeer.call(userId, stream);
                     call.on('stream',userStream => {
                         video.current.srcObject = userStream;
