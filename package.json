@@ -2,6 +2,9 @@
   "name": "inspect-rtc",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=14"
+  },
   "scripts": {
     "dev": "next dev",
     "peer-dev": "peerjs --port 3001",
