@@ -9,8 +9,6 @@ export default function Room() {
     const { room } = query
     const peers = {};
 
-    //fetch('/api/peer').then(() => console.log('connected to peerServer'))
-
     useEffect(() => socketInitializer(), [isReady])
 
     const socketInitializer = () => {
@@ -29,17 +27,17 @@ export default function Room() {
         })
 
         import('peerjs').then(({ default: Peer }) => {
-            
-            const myPeer = new Peer();
-
-            myPeer.on('open', id => {
-                socket.emit('joined-room', room, id)
-            });
     
             navigator.mediaDevices.getUserMedia({
                 video:true,
                 audio:true
             }).then(stream => {
+                const myPeer = new Peer();
+
+                myPeer.on('open', id => {
+                    socket.emit('joined-room', room, id)
+                });
+                
                 myVideo.current.srcObject = stream;
     
                 myPeer.on('call', call => {
