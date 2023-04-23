@@ -1,8 +1,6 @@
 import Head from 'next/head'
 
-
 export default function Home({uuidv4}) {
-  
   return (
     <div className='w-full h-screen'>
       <Head>
@@ -21,14 +19,23 @@ export default function Home({uuidv4}) {
             A REAL TIME COMMUNICATION
             <span className='block'>APPLICATION</span>
           </h2>
-          <div className="flex mt-8 gap-x-4 sm:justify-center">
+          <div className="flex flex-col items-center gap-4 mt-8 sm:justify-center">
+            <a
+              href={`/peer/${uuidv4}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center justify-center px-8 py-4 text-2xl font-semibold leading-7 text-white rounded-lg shadow-sm bg-gradient-to-r from-cyan-500 to-blue-500 ring-1"
+            >
+              Get started
+              <span className="text-indigo-200" aria-hidden="true"> &rarr; </span>
+            </a>
             <a
               href={`/${uuidv4}`}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center justify-center px-8 py-4 text-2xl font-semibold leading-7 text-white rounded-lg shadow-sm bg-gradient-to-r from-cyan-500 to-blue-500 ring-1"
             >
-              Get started
+              Group Meeting
               <span className="text-indigo-200" aria-hidden="true"> &rarr; </span>
             </a>
           </div>

@@ -5,3 +5,42 @@
 body{
     @apply bg-slate-800;
 }
+
+.video-grid{
+    width: 100%;
+    height: 100vh;
+    display: grid;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    overflow: auto;
+}
+
+.video-grid .grid-item{
+    aspect-ratio: 1/1;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    max-height: 100vh;
+    margin: auto;
+    position: relative;
+}
+
+@layer components {
+    .btn-1{
+        @apply inline-flex 
+        items-center 
+        justify-center 
+        font-semibold
+        leading-7 
+        text-white 
+        rounded-lg 
+        shadow-sm 
+        bg-gradient-to-r
+        from-cyan-500 
+        to-blue-500 ring-1;
+    }
+}
