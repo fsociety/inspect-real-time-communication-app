@@ -6,6 +6,8 @@ import $ from 'jquery';
 import RemoteVideo from '../components/RemoteVideo';
 import LocalVideo from '../components/LocalVideo';
 import { ContextProvider } from '../context/Context';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export default function Room() {
     const {query, isReady} = useRouter()
@@ -13,6 +15,7 @@ export default function Room() {
     const [localVideoDetail, setLocalVideoDetail] = useState(null)
     const [remoteVideos, setRemoteVideos] = useState({})
     const { room } = query;
+    var subscriber_mode = (query["subscriber-mode"] === "yes" || query["subscriber-mode"] === "true");
     var sfutest = null;
     var janus = null;
 
@@ -55,7 +58,6 @@ export default function Room() {
         var acodec = (query.acodec !== "" ? query.acodec : null);
         var vcodec = (query.vcodec !== "" ? query.vcodec : null);
         var doDtx = (query.dtx === "yes" || query.dtx === "true");
-        var subscriber_mode = (query["subscriber-mode"] === "yes" || query["subscriber-mode"] === "true");
 
         Janus.init({debug: "all", callback: function() {
             // Make sure the browser supports WebRTC
@@ -93,6 +95,7 @@ export default function Room() {
                                             createRoom();
                                         }else{
                                             console.log("The room has already been created. joining the room...");
+                                            toast.info("joining the room...");
                                         }
                                     }).catch(err => {
                                         console.log(err);
@@ -103,13 +106,12 @@ export default function Room() {
                                 error: function(error) {
                                     Janus.error("  -- Error attaching plugin...", error);
                                     console.log("Error attaching plugin... " + error);
+                                    toast.error(error);
                                 },
                                 consentDialog: function(on) {
                                     Janus.debug("Consent dialog should be " + (on ? "on" : "off") + " now");
                                     if(on) {
-                                        // Darken screen and show hint
                                         navigator.mozGetUserMedia
-                                    } else {
                                     }
                                 },
                                 iceState: function(state) {
@@ -117,27 +119,13 @@ export default function Room() {
                                 },
                                 mediaState: function(medium, on) {
                                     Janus.log("Janus " + (on ? "started" : "stopped") + " receiving our " + medium);
+                                    toast.info("Janus " + (on ? "started" : "stopped") + " receiving our " + medium);
                                 },
                                 webrtcState: function(on) {
                                     Janus.log("Janus says our WebRTC PeerConnection is " + (on ? "up" : "down") + " now");
-                                    //$("#videolocal").parent().parent().unblock();
+                                    toast.info("Janus says our WebRTC PeerConnection is " + (on ? "up" : "down") + " now");
                                     if(!on)
                                         return;
-                                    $('#publish').remove();
-                                    // This controls allows us to override the global room bitrate cap
-                                    $('#bitrate').parent().parent().removeClass('hide').show();
-                                    $('#bitrate a').click(function() {
-                                        var id = $(this).attr("id");
-                                        var bitrate = parseInt(id)*1000;
-                                        if(bitrate === 0) {
-                                            Janus.log("Not limiting bandwidth via REMB");
-                                        } else {
-                                            Janus.log("Capping bandwidth to " + bitrate + " via REMB");
-                                        }
-                                        $('#bitrateset').html($(this).html() + '<span className="caret"></span>').parent().removeClass('open');
-                                        sfutest.send({ message: { request: "configure", bitrate: bitrate }});
-                                        return false;
-                                    });
                                 },
                                 onmessage: function(msg, jsep) {
                                     Janus.debug(" ::: Got a message (publisher) :::", msg);
@@ -149,10 +137,8 @@ export default function Room() {
                                             myid = msg["id"];
                                             mypvtid = msg["private_id"];
                                             Janus.log("Successfully joined room " + msg["room"] + " with ID " + myid);
-                                            if(subscriber_mode) {
-                                                $('#videojoin').hide();
-                                                $('#videos').removeClass('hide').show();
-                                            } else {
+                                            toast.info("Successfully joined room " + msg["room"] + " with ID " + myid);
+                                            if(!subscriber_mode) {
                                                 publishOwnFeed(true);
                                             }
                                             // Any new feed to attach to?
@@ -554,14 +540,17 @@ export default function Room() {
     return (
         <>
         <div className='text-white video-grid' id="videos">
-        
-        <LocalVideo videoDetail={localVideoDetail} />
+
+        {!subscriber_mode && (
+            <LocalVideo videoDetail={localVideoDetail} />
+        )}
 
         {Object.values(remoteVideos).map((remoteDetail,index) => {
             return <RemoteVideo key={index} videoDetail={remoteDetail} showBitrate={true} />
         })}
-            
+
         </div>
+        <ToastContainer autoClose={3000} />
         </>
     )
 }

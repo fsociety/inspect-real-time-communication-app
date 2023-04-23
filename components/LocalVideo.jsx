@@ -1,4 +1,6 @@
-import React,{useRef, useContext, useEffect, useState} from 'react'
+import React,{useRef, useContext, useEffect, useState} from 'react';
+import { toast } from 'react-toastify';
+import Select from 'react-select';
 import { ContextProvider } from '../context/Context';
 
 export default function LocalVideo({videoDetail}) {
@@ -6,6 +8,16 @@ export default function LocalVideo({videoDetail}) {
   const [webcam, setWebcam] = useState(true)
   const [isMuted, setIsMuted] = useState(false)
   const localVideoRef = useRef(null);
+
+  const bitrates = [
+    { value: 0, label: 'No limit' },
+    { value: 128, label: 'Cap to 128kbit' },
+    { value: 256, label: 'Cap to 128kbit' },
+    { value: 512, label: 'Cap to 512kbit' },
+    { value: 1024, label: 'Cap to 1mbit' },
+    { value: 1500, label: 'Cap to 1.5mbit' },
+    { value: 2000, label: 'Cap to 2mbit' },
+  ];
 
   useEffect(() => {
     if(videoDetail){
@@ -37,6 +49,18 @@ export default function LocalVideo({videoDetail}) {
       var unpublish = { request: "unpublish" };
       contextData.sfuVideoRoom.send({ message: unpublish });
   }
+
+  const handleChangeBitrate = ({value}) => {
+    let bitrate = parseInt(value)*1000;
+    if(bitrate === 0) {
+        Janus.log("Not limiting bandwidth via REMB");
+        toast.info("Not limiting bandwidth via REMB")
+    } else {
+        Janus.log("Capping bandwidth to " + bitrate + " via REMB");
+        toast.info("Capping bandwidth to " + bitrate + " via REMB")
+    }
+    contextData.sfuVideoRoom.send({ message: { request: "configure", bitrate: bitrate }});
+  }
   
   return (
     <div className='gap-2 grid-item'>
@@ -63,6 +87,11 @@ export default function LocalVideo({videoDetail}) {
                 id='publisher'>
                   {videoDetail.publisher}
                 </span>
+                <Select
+                  defaultValue={0}
+                  onChange={handleChangeBitrate}
+                  options={bitrates}
+                />
                 <button 
                 onClick={unpublishOwnFeed}
                 className="px-3 py-1 text-sm rounded-sm btn-1">Unpublish</button>
