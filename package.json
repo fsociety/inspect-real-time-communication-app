@@ -15,7 +15,6 @@
   "dependencies": {
     "eslint": "8.28.0",
     "eslint-config-next": "13.0.5",
-    "jquery": "^3.6.4",
     "next": "13.0.5",
     "peer": "^0.6.1",
     "peerjs": "^1.4.7",

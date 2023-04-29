@@ -10,6 +10,8 @@ export default function RemoteVideo({videoDetail,showBitrate}) {
   const remoteVideoRef = useRef(null);
 
   useEffect(() => {
+    let bitrateInterval;
+
     if(videoDetail){
       Janus.attachMediaStream(remoteVideoRef.current, videoDetail.stream);
       let videoTracks = videoDetail.stream.getVideoTracks();
@@ -22,7 +24,7 @@ export default function RemoteVideo({videoDetail,showBitrate}) {
       if(showBitrate){
         if(Janus.webRTCAdapter.browserDetails.browser === "chrome" || Janus.webRTCAdapter.browserDetails.browser === "firefox" ||
                 Janus.webRTCAdapter.browserDetails.browser === "safari") {
-            setInterval(function() {
+            bitrateInterval = setInterval(function() {
                 // Display updated bitrate, if supported
                 var bitrate = videoDetail.remoteFeed.getBitrate();
                 setBitrate(bitrate);
@@ -37,6 +39,12 @@ export default function RemoteVideo({videoDetail,showBitrate}) {
         }
       }
     }
+
+    return () => {
+      if(bitrateInterval){
+        clearInterval(bitrateInterval);
+      }
+    }
   }, [videoDetail,showBitrate])
 
   const playHandler = () => {
@@ -44,9 +52,11 @@ export default function RemoteVideo({videoDetail,showBitrate}) {
       width: remoteVideoRef.current.videoWidth,
       height: remoteVideoRef.current.videoHeight
     })
-    /*
+    /**
+     * Firefox Stable has a bug: width and height are not immediately available after a playing
+      
     if(Janus.webRTCAdapter.browserDetails.browser === "firefox") {
-        // Firefox Stable has a bug: width and height are not immediately available after a playing
+        
         setTimeout(function() {
           setCurres({
             width: remoteVideoRef.current.videoWidth,
@@ -54,7 +64,9 @@ export default function RemoteVideo({videoDetail,showBitrate}) {
           })
         }, 2000);
     }
-    */
+
+     **/ 
+    
   }
 
   return (
@@ -71,10 +83,14 @@ export default function RemoteVideo({videoDetail,showBitrate}) {
               className='object-contain max-w-full max-h-full'
               ></video>
             ): <span>No remote video available</span>}
-            
+
             <div className='absolute bottom-0 left-0 right-0 flex justify-between gap-1 px-4 py-8 transition-all duration-500 opacity-0 bg-gradient-to-t from-black/80 group-hover:opacity-100'>
                 <button className="px-3 py-1 text-sm rounded-sm btn-1">Mute</button>
                 <span>{curres.width}x{curres.height}</span>
+                <span 
+                  className='font-bold'>
+                  {videoDetail.rfdisplay}
+                </span>
                 {showBitrate && (
                   <span>Bitrate: {bitrate}</span>
                 )}

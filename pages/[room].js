@@ -2,7 +2,7 @@ import React,{ useEffect, useRef, useState, useContext } from 'react'
 import { useRouter } from 'next/router'
 import SocketIOClient from "socket.io-client";
 import adapter from 'webrtc-adapter';
-import $ from 'jquery';
+import { publishOwnFeed } from '../utils/janus-utils';
 import RemoteVideo from '../components/RemoteVideo';
 import LocalVideo from '../components/LocalVideo';
 import { ContextProvider } from '../context/Context';
@@ -52,12 +52,6 @@ export default function Room() {
         var mypvtid = null;
 
         var feeds = [];
-        var bitrateTimer = [];
-
-        var doSimulcast = (query.simulcast === "yes" || query.simulcast === "true");
-        var acodec = (query.acodec !== "" ? query.acodec : null);
-        var vcodec = (query.vcodec !== "" ? query.vcodec : null);
-        var doDtx = (query.dtx === "yes" || query.dtx === "true");
 
         Janus.init({debug: "all", callback: function() {
             // Make sure the browser supports WebRTC
@@ -81,7 +75,6 @@ export default function Room() {
                                 plugin: "janus.plugin.videoroom",
                                 opaqueId: opaqueId,
                                 success: async function(pluginHandle) {
-                                    $('#details').remove();
                                     sfutest = pluginHandle;
                                     setContextData({
                                         ...contextData,
@@ -139,7 +132,7 @@ export default function Room() {
                                             Janus.log("Successfully joined room " + msg["room"] + " with ID " + myid);
                                             toast.info("Successfully joined room " + msg["room"] + " with ID " + myid);
                                             if(!subscriber_mode) {
-                                                publishOwnFeed(true);
+                                                publishOwnFeed(sfutest);
                                             }
                                             // Any new feed to attach to?
                                             if(msg["publishers"]) {
@@ -184,8 +177,9 @@ export default function Room() {
                                                 }
                                                 if(remoteFeed != null) {
                                                     Janus.debug("Feed " + remoteFeed.rfid + " (" + remoteFeed.rfdisplay + ") has left the room, detaching");
-                                                    $('#remote'+remoteFeed.rfindex).empty().hide();
-                                                    $('#videoremote'+remoteFeed.rfindex).empty();
+                                                    let updatedFeeds = remoteVideos;
+                                                    delete updatedFeeds[remoteFeed.rfindex];
+                                                    setRemoteVideos(updatedFeeds);
                                                     feeds[remoteFeed.rfindex] = null;
                                                     remoteFeed.detach();
                                                 }
@@ -207,8 +201,9 @@ export default function Room() {
                                                 }
                                                 if(remoteFeed != null) {
                                                     Janus.debug("Feed " + remoteFeed.rfid + " (" + remoteFeed.rfdisplay + ") has left the room, detaching");
-                                                    $('#remote'+remoteFeed.rfindex).empty().hide();
-                                                    $('#videoremote'+remoteFeed.rfindex).empty();
+                                                    let updatedFeeds = remoteVideos;
+                                                    delete updatedFeeds[remoteFeed.rfindex];
+                                                    setRemoteVideos(updatedFeeds);
                                                     feeds[remoteFeed.rfindex] = null;
                                                     remoteFeed.detach();
                                                 }
@@ -230,19 +225,17 @@ export default function Room() {
                                         var audio = msg["audio_codec"];
                                         if(mystream && mystream.getAudioTracks() && mystream.getAudioTracks().length > 0 && !audio) {
                                             // Audio has been rejected
-                                            toastr.warning("Our audio stream has been rejected, viewers won't hear us");
+                                            toast.warn("Our audio stream has been rejected, viewers won't hear us");
                                         }
                                         var video = msg["video_codec"];
                                         if(mystream && mystream.getVideoTracks() && mystream.getVideoTracks().length > 0 && !video) {
                                             // Video has been rejected
-                                            toastr.warning("Our video stream has been rejected, viewers won't see us");
+                                            toast.warn("Our video stream has been rejected, viewers won't see us");
                                             // Hide the webcam video
-                                            $('#myvideo').hide();
-                                            $('#videolocal').append(
-                                                '<div className="no-video-container">' +
-                                                    '<i className="fa fa-video-camera fa-5 no-video-icon" style="height: 100%;"></i>' +
-                                                    '<span className="no-video-text" style="font-size: 16px;">Video rejected, no webcam</span>' +
-                                                '</div>');
+                                            setLocalVideoDetail({
+                                                ...localVideoDetail,
+                                                message: "Video rejected, no webcam"
+                                            })
                                         }
                                     }
                                 },
@@ -264,11 +257,6 @@ export default function Room() {
                                 oncleanup: function() {
                                     Janus.log(" ::: Got a cleanup notification: we are unpublished now :::");
                                     mystream = null;
-                                    $('#videolocal').html('<button id="publish" className="btn btn-primary">Publish</button>');
-                                    $('#publish').click(function() { publishOwnFeed(true); });
-                                    //$("#videolocal").parent().parent().unblock();
-                                    $('#bitrate').parent().parent().addClass('hide');
-                                    $('#bitrate a').unbind('click');
                                 }
                             });
                     },
@@ -325,56 +313,6 @@ export default function Room() {
                 }
                 sfutest.send({ message: request, success: successCallback, error: errorCallback});
             });
-        }
-
-        function publishOwnFeed(useAudio) {
-            // Publish our stream
-            $('#publish').attr('disabled', true).unbind('click');
-            sfutest.createOffer(
-                {
-                    // Add data:true here if you want to publish datachannels as well
-                    media: { audioRecv: false, videoRecv: false, audioSend: useAudio, videoSend: true },	// Publishers are sendonly
-                    // If you want to test simulcasting (Chrome and Firefox only), then
-                    // pass a ?simulcast=true when opening this demo page: it will turn
-                    // the following 'simulcast' property to pass to janus.js to true
-                    simulcast: doSimulcast,
-                    customizeSdp: function(jsep) {
-                        // If DTX is enabled, munge the SDP
-                        if(doDtx) {
-                            jsep.sdp = jsep.sdp
-                                .replace("useinbandfec=1", "useinbandfec=1;usedtx=1")
-                        }
-                    },
-                    success: function(jsep) {
-                        Janus.debug("Got publisher SDP!", jsep);
-                        var publish = { request: "configure", audio: useAudio, video: true };
-                        // You can force a specific codec to use when publishing by using the
-                        // audiocodec and videocodec properties, for instance:
-                        // 		publish["audiocodec"] = "opus"
-                        // to force Opus as the audio codec to use, or:
-                        // 		publish["videocodec"] = "vp9"
-                        // to force VP9 as the videocodec to use. In both case, though, forcing
-                        // a codec will only work if: (1) the codec is actually in the SDP (and
-                        // so the browser supports it), and (2) the codec is in the list of
-                        // allowed codecs in a room. With respect to the point (2) above,
-                        // refer to the text in janus.plugin.videoroom.jcfg for more details.
-                        // We allow people to specify a codec via query string, for demo purposes
-                        if(acodec)
-                            publish["audiocodec"] = acodec;
-                        if(vcodec)
-                            publish["videocodec"] = vcodec;
-                        sfutest.send({ message: publish, jsep: jsep });
-                    },
-                    error: function(error) {
-                        Janus.error("WebRTC error:", error);
-                        if(useAudio) {
-                             publishOwnFeed(false);
-                        } else {
-                            console.log("WebRTC error... " + error.message);
-                            $('#publish').removeAttr('disabled').click(function() { publishOwnFeed(true); });
-                        }
-                    }
-                });
         }
 
         function newRemoteFeed(id, display, audio, video) {
@@ -434,16 +372,7 @@ export default function Room() {
                                 }
                                 remoteFeed.rfid = msg["id"];
                                 remoteFeed.rfdisplay = msg["display"];
-                                /*
-                                if(!remoteFeed.spinner) {
-                                    var target = document.getElementById('videoremote'+remoteFeed.rfindex);
-                                    remoteFeed.spinner = new Spinner({top:100}).spin(target);
-                                } else {
-                                    remoteFeed.spinner.spin();
-                                }
-                                */
                                 Janus.log("Successfully attached to feed " + remoteFeed.rfid + " (" + remoteFeed.rfdisplay + ") in room " + msg["room"]);
-                                $('#remote'+remoteFeed.rfindex).removeClass('hide').html(remoteFeed.rfdisplay).show();
                             } else if(event === "event") {
                                 // Check if we got a simulcast-related event from this publisher
                                 var substream = msg["substream"];
@@ -504,6 +433,7 @@ export default function Room() {
                         if(remoteVideos[remoteFeed.rfindex] === undefined){
                             let remoteStreamInfo = {
                                 rfindex: remoteFeed.rfindex,
+                                rfdisplay: remoteFeed.rfdisplay,
                                 stream: stream,
                                 remoteFeed: remoteFeed
                             };
@@ -517,21 +447,7 @@ export default function Room() {
                     },
                     oncleanup: function() {
                         Janus.log(" ::: Got a cleanup notification (remote feed " + id + ") :::");
-                        /*
-                        if(remoteFeed.spinner)
-                            remoteFeed.spinner.stop();
-                        remoteFeed.spinner = null;
-                        */
-                        $('#remotevideo'+remoteFeed.rfindex).remove();
-                        $('#waitingvideo'+remoteFeed.rfindex).remove();
-                        $('#novideo'+remoteFeed.rfindex).remove();
-                        $('#curbitrate'+remoteFeed.rfindex).remove();
-                        $('#curres'+remoteFeed.rfindex).remove();
-                        if(bitrateTimer[remoteFeed.rfindex])
-                            clearInterval(bitrateTimer[remoteFeed.rfindex]);
-                        bitrateTimer[remoteFeed.rfindex] = null;
                         remoteFeed.simulcastStarted = false;
-                        $('#simulcast'+remoteFeed.rfindex).remove();
                     }
                 });
         }

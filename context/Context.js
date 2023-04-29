@@ -2,7 +2,9 @@ import Script from 'next/script';
 import React,{createContext, useState} from 'react'
 
 
-export const ContextProvider = createContext(null);
+export const ContextProvider = createContext({
+  sfuVideoRoom: null
+});
 
 export default function Context({ children }) {
     const [contextData, setContextData] = useState({});
